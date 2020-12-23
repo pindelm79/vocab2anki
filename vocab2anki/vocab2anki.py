@@ -1,36 +1,71 @@
 import json
 import sqlite3
+from typing import Dict, List, Any
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
 
 class Anki:
-    """Class representing your local Anki instance."""
+    """The local Anki instance."""
 
-    def __init__(self, version=6):
+    def __init__(self, version: int = 6):
         self.version = version
 
-    def create_deck(self, deck_name):
-        """Creates a new deck with the specified name."""
+    def create_deck(self, deck_name: str) -> int:
+        """Creates a new, empty deck.
+
+        Does not override existing decks. If a new deck was created, prints out a notification.
+
+        Args:
+            deck_name: Name of the deck to be created.
+
+        Returns:
+            ID of the created deck.
+        """
+        already_exists = deck_name in self.list_decks
         response = self.send_request("createDeck", deck=deck_name)
-        print(f"Created deck {deck_name}.")
+        if not already_exists:
+            print(f"Created deck {deck_name}.")
         return response
 
-    def list_decks(self):
+    def list_decks(self) -> List[str]:
         """Returns a list of all decks."""
         response = self.send_request("deckNames")
         return response
 
-    def delete_deck(self, deck_name, delete_cards=True):
-        """Deletes a deck with the specified name."""
+    def delete_deck(self, deck_name: str, delete_cards: bool = True) -> None:
+        """Deletes the specified deck.
+
+        Args:
+            deck_name: Name of the deck to be deleted.
+            delete_cards: Whether to delete the cards in the deck (True) or move them to the Default deck (False).
+        """
         response = self.send_request(
             "deleteDecks", decks=[deck_name], cardsToo=delete_cards
         )
         print(f"Deleted deck {deck_name}")
         return response
 
-    def add_note(self, deck_name, note_type, fields, tags=[], allow_duplicates=True):
-        """Creates a note, given a deck name, note type, field values and tags."""
+    def add_note(
+        self,
+        deck_name: str,
+        note_type: str,
+        fields: Dict[str, Any],
+        tags: List[str] = [],
+        allow_duplicates: bool = True,
+    ) -> int:
+        """Adds a note to a specified deck.
+
+        Args:
+            deck_name: Name of the deck to add to.
+            note_type: Type of the note.
+            fields: Fields and their values, in the format {"field1": val1, "field2": val2, ...}
+            tags: A list of tags to add.
+            allow_duplicates: Whether to allow for duplicate cards in the deck.
+
+        Returns:
+            ID of the created note.
+        """
         note_params = {
             "deckName": deck_name,
             "modelName": note_type,
@@ -42,16 +77,43 @@ class Anki:
         return response
 
     def add_multiple_notes(
-        self, deck_name, note_type, fields_list, tags=[], allow_duplicates=True
-    ):
-        """An interface to the add_note function to create multiple notes in the same deck."""
+        self,
+        deck_name: str,
+        note_type: str,
+        fields_list: List[Dict[str, Any]],
+        tags: List[str] = [],
+        allow_duplicates: bool = True,
+    ) -> None:
+        """Adds multiple notes to a deck.
+
+        Assumes the notes are added to the same deck, are of the same type, and add the same tags.
+
+        Args:
+            deck_name: Name of the deck to add to.
+            note_type: Type of the notes.
+            fields_list: A list of fields and their values.
+                Each element of the list in the format {"field1": val1, "field2": val2, ...}.
+            tags: Tags to add.
+            allow_duplicates: Whether to allow for duplicate cards in the deck.
+        """
         print("Adding notes...")
         for fields in fields_list:
             self.add_note(deck_name, note_type, fields, tags)
         print(f"Added {len(fields_list)} words to {deck_name}.")
 
-    def send_request(self, action, **params):
-        """Sends a specified request to the AnkiConnect API and gets the results."""
+    def send_request(self, action: str, **params) -> Any:
+        """Sends a request to the AnkiConnect API with the specified action and parameters.
+
+        Args:
+            action: The action to perform in the API.
+            **params: An arbitrary number of parameters. Specifics depend on the action.
+
+        Raises:
+            RuntimeError: An error was returned in the response.
+
+        Returns:
+            The response of the API.
+        """
         # Creating and sending the request
         request_json = json.dumps(
             {"action": action, "params": params, "version": self.version}
@@ -81,12 +143,22 @@ class Anki:
 
 
 class Vocab:
-    """Class representing the Vocabulary Builder from Kindle."""
+    """Class representing the Vocabulary Builder from Kindle.
+
+    The class establishes a connection with the database on initialization.
+    """
 
     def __init__(self, path="/Volumes/Kindle/system/vocabulary/vocab.db"):
         self.connect_db(path)
 
-    def connect_db(self, path):
+    def connect_db(self, path: str):
+        """Connects to the Kindle Vocabulary database.
+
+        If the connection fails, it quits the program.
+
+        Args:
+            path: Path to the database.
+        """
         try:
             self.conn = sqlite3.connect(path)
         except sqlite3.DatabaseError as e:
@@ -95,8 +167,13 @@ class Vocab:
             )
             quit()
 
-    def import_all_words(self):
-        """Imports all unmastered words and their usage into a list of dictionaries."""
+    def import_all_words(self) -> List[Dict[str, str]]:
+        """Imports all unmastered words from the Vocabulary Builder.
+
+        Returns:
+            A list of imported words.
+            Format of each element: {"word": actual word, "usage": the word's context}.
+        """
         statement = """
         SELECT stem, usage
         FROM WORDS AS w JOIN LOOKUPS AS l ON w.id = l.word_key
@@ -116,8 +193,7 @@ def main():
 
     # User interaction
     deck_name = input("Target deck name: ")
-    if deck_name not in anki.list_decks():
-        anki.create_deck(deck_name)
+    anki.create_deck(deck_name)
     note_type = input("Target note type: ")
     word_field = input("Field to assign the actual words to: ")
     usage_field = input("Field to assign the context of the words to: ")
@@ -138,4 +214,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    anki = Anki()
+    print(anki.delete_deck("tmp"))

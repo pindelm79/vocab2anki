@@ -1,6 +1,6 @@
 # vocab2anki
 
-vocab2anki is a Python script for moving words from Kindle Vocabulary Builder to Anki.
+vocab2anki is a Python script for MacOS for moving words from Kindle Vocabulary Builder to Anki.
 
 ## Installation
 
