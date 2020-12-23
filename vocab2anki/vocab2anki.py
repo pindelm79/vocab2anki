@@ -214,6 +214,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    anki = Anki()
-    print(anki.delete_deck("tmp"))
+    main()
