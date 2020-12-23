@@ -178,8 +178,7 @@ def main():
 
     # User interaction
     deck_name = input("Target deck name: ")
-    if deck_name not in anki.list_decks():
-        anki.create_deck(deck_name)
+    anki.create_deck(deck_name)
     note_type = input("Target note type: ")
     word_field = input("Field to assign the actual words to: ")
     usage_field = input("Field to assign the context of the words to: ")
