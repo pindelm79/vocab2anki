@@ -143,12 +143,22 @@ class Anki:
 
 
 class Vocab:
-    """Class representing the Vocabulary Builder from Kindle."""
+    """Class representing the Vocabulary Builder from Kindle.
+
+    The class establishes a connection with the database on initialization.
+    """
 
     def __init__(self, path="/Volumes/Kindle/system/vocabulary/vocab.db"):
         self.connect_db(path)
 
-    def connect_db(self, path):
+    def connect_db(self, path: str):
+        """Connects to the Kindle Vocabulary database.
+
+        If the connection fails, it quits the program.
+
+        Args:
+            path: Path to the database.
+        """
         try:
             self.conn = sqlite3.connect(path)
         except sqlite3.DatabaseError as e:
@@ -157,8 +167,13 @@ class Vocab:
             )
             quit()
 
-    def import_all_words(self):
-        """Imports all unmastered words and their usage into a list of dictionaries."""
+    def import_all_words(self) -> List[Dict[str, str]]:
+        """Imports all unmastered words from the Vocabulary Builder.
+
+        Returns:
+            A list of imported words.
+            Format of each element: {"word": actual word, "usage": the word's context}.
+        """
         statement = """
         SELECT stem, usage
         FROM WORDS AS w JOIN LOOKUPS AS l ON w.id = l.word_key
