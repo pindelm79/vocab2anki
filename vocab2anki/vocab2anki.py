@@ -22,7 +22,7 @@ class Anki:
         Returns:
             ID of the created deck.
         """
-        already_exists = deck_name in self.list_decks
+        already_exists = deck_name in self.list_decks()
         response = self.send_request("createDeck", deck=deck_name)
         if not already_exists:
             print(f"Created deck {deck_name}.")
@@ -33,16 +33,13 @@ class Anki:
         response = self.send_request("deckNames")
         return response
 
-    def delete_deck(self, deck_name: str, delete_cards: bool = True) -> None:
-        """Deletes the specified deck.
+    def delete_deck(self, deck_name: str) -> None:
+        """Deletes the specified deck and the cards in it.
 
         Args:
             deck_name: Name of the deck to be deleted.
-            delete_cards: Whether to delete the cards in the deck (True) or move them to the Default deck (False).
         """
-        response = self.send_request(
-            "deleteDecks", decks=[deck_name], cardsToo=delete_cards
-        )
+        response = self.send_request("deleteDecks", decks=[deck_name], cardsToo=True)
         print(f"Deleted deck {deck_name}")
         return response
 
@@ -95,11 +92,25 @@ class Anki:
                 Each element of the list in the format {"field1": val1, "field2": val2, ...}.
             tags: Tags to add.
             allow_duplicates: Whether to allow for duplicate cards in the deck.
+
+        Raises:
+            RuntimeError: One or more cards have invalid fields.
         """
+        # Checks if notes can be added
+        for fields in fields_list:
+            note = {
+                "deckName": deck_name,
+                "modelName": note_type,
+                "fields": fields,
+                "tags": tags,
+            }
+            if False in self.send_request("canAddNotes", notes=[note]):
+                raise RuntimeError("Fields have to be valid for all cards.")
+
         print("Adding notes...")
         for fields in fields_list:
-            self.add_note(deck_name, note_type, fields, tags)
-        print(f"Added {len(fields_list)} words to {deck_name}.")
+            self.add_note(deck_name, note_type, fields, tags, allow_duplicates)
+        print(f"Added {len(fields_list)} notes to {deck_name}.")
 
     def send_request(self, action: str, **params) -> Any:
         """Sends a request to the AnkiConnect API with the specified action and parameters.
