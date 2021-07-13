@@ -22,13 +22,13 @@ class Anki:
         Returns:
             ID of the created deck.
         """
-        already_exists = deck_name in self.list_decks()
+        already_exists = deck_name in self.get_decks()
         response = self.send_request("createDeck", deck=deck_name)
         if not already_exists:
             print(f"Created deck {deck_name}.")
         return response
 
-    def list_decks(self) -> List[str]:
+    def get_decks(self) -> List[str]:
         """Returns a list of all decks."""
         response = self.send_request("deckNames")
         return response
@@ -111,6 +111,14 @@ class Anki:
         for fields in fields_list:
             self.add_note(deck_name, note_type, fields, tags, allow_duplicates)
         print(f"Added {len(fields_list)} notes to {deck_name}.")
+
+    def get_note_types(self) -> List[str]:
+        """Returns a list of all note types."""
+        return self.send_request("modelNames")
+
+    def get_note_type_fields(self, note_type: str) -> List[str]:
+        """Returns a list of fields for the given note type."""
+        return self.send_request("modelFieldNames", modelName=note_type)
 
     def send_request(self, action: str, **params) -> Any:
         """Sends a request to the AnkiConnect API with the specified action and parameters.
@@ -203,9 +211,12 @@ def main():
     anki = Anki()
 
     # User interaction
+    print("Available decks:", anki.get_decks())
     deck_name = input("Target deck name: ")
     anki.create_deck(deck_name)
+    print("Available note types:", anki.get_note_types())
     note_type = input("Target note type: ")
+    print("Available fields:", anki.get_note_type_fields(note_type))
     word_field = input("Field to assign the actual words to: ")
     usage_field = input("Field to assign the context of the words to: ")
     tags = input("Tags (separated by spaces): ").split()
